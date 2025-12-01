@@ -5,6 +5,9 @@ import streamlit         as st
 import numpy             as np
 import xlsxwriter
 
+from sklearn.cluster     import KMeans
+from sklearn.preprocessing import StandardScaler
+
 from datetime            import datetime
 from PIL                 import Image
 from io                  import BytesIO
@@ -162,6 +165,24 @@ def main():
 
         df_RFV['acoes de marketing/crm'] = df_RFV['RFV_Score'].map(dict_acoes)
         st.write(df_RFV.head())
+
+        st.write('## Agrupamento com K-Means')
+        st.write('Vamos utilizar o algoritmo K-Means para agrupar os clientes e comparar com a segmentação RFV.')
+        
+        # Pré-processamento
+        scaler = StandardScaler()
+        df_scaled = scaler.fit_transform(df_RFV[['Recencia', 'Frequencia', 'Valor']])
+        
+        # K-Means
+        k = st.slider('Escolha o número de clusters (k)', min_value=2, max_value=10, value=4)
+        kmeans = KMeans(n_clusters=k, random_state=42)
+        df_RFV['Cluster_KMeans'] = kmeans.fit_predict(df_scaled)
+        
+        st.write('Médias por Cluster K-Means')
+        st.write(df_RFV.groupby('Cluster_KMeans')[['Recencia', 'Frequencia', 'Valor']].mean())
+        
+        st.write('Comparação RFV x K-Means')
+        st.write(pd.crosstab(df_RFV['RFV_Score'], df_RFV['Cluster_KMeans']))
 
 
         # df_RFV.to_excel('./auxiliar/output/RFV_.xlsx')
